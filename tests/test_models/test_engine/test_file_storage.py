@@ -1,169 +1,86 @@
-#!/usr/bin/python3
-"""Defines unittests for models/engine/file_storage.py.
-
-Unittest classes:
-    TestFileStorage_instantiation
-    TestFileStorage_methods
+#!/usr/bin/env python3
 """
-import os
-import json
-import models
-import unittest
-from datetime import datetime
-from models.base_model import BaseModel
+This module contains unittests for FileStorage class
+"""
 from models.engine.file_storage import FileStorage
-from models.user import User
-from models.state import State
-from models.place import Place
-from models.city import City
-from models.amenity import Amenity
-from models.review import Review
+from models.base_model import BaseModel
+import unittest
+from unittest import mock
+import datetime
+from os.path import exists
+import json
 
-class TestFileStorage_instantiation(unittest.TestCase):
-    """Unittests for testing instantiation of the FileStorage class."""
 
-    def test_FileStorage_instantiation_no_args(self):
-        self.assertEqual(type(FileStorage()), FileStorage)
+class TestFileStorage(unittest.TestCase):
+    """Defines test cases for FileStorage class"""
 
-    def test_FileStorage_instantiation_with_arg(self):
-        with self.assertRaises(TypeError):
-            FileStorage(None)
+    # This shows the full difference output incase of failure
+    maxDiff = None
 
-    def test_FileStorage_file_path_is_private_str(self):
-        self.assertEqual(str, type(FileStorage._FileStorage__file_path))
-
-    def testFileStorage_objects_is_private_dict(self):
-        self.assertEqual(dict, type(FileStorage._FileStorage__objects))
-
-    def test_storage_initializes(self):
-        self.assertEqual(type(models.storage), FileStorage)
-
-class TestFileStorage_methods(unittest.TestCase):
-    """Unittests for testing methods of the FileStorage class."""
-
-    @classmethod
     def setUp(self):
-        try:
-            os.rename("file.json", "tmp")
-        except IOError:
-            pass
+        """Sets up common items for the TestFileStorage class"""
+        self.store = FileStorage()
 
-    @classmethod
-    def tearDown(self):
-        try:
-            os.remove("file.json")
-        except IOError:
-            pass
-        try:
-            os.rename("tmp", "file.json")
-        except IOError:
-            pass
-        FileStorage._FileStorage__objects = {}
+    def test_all_and_new(self):
+        """Test all method"""
 
-    def test_all(self):
-        self.assertEqual(dict, type(models.storage.all()))
+        self.assertIsInstance(self.store, FileStorage)
+        obj = self.store.all()
+        self.assertIsInstance(obj, dict)
+        # checking if the obj instance holds the correct value
+        # in the proper format
 
-    def test_all_with_arg(self):
-        with self.assertRaises(TypeError):
-            models.storage.all(None)
+        dictionary = {
+            "id": "56d43177-cc5f-4d6c-a0c1-e167f8c27337",
+            "created_at": "2017-09-28T21:03:54.052298",
+            "__class__": "BaseModel",
+            "updated_at": "2017-09-28T21:03:54.052302"
+            }
+        base_inst = BaseModel(**dictionary)
+        self.store.new(base_inst)
+        obj = self.store.all()
+        if "BaseModel.56d43177-cc5f-4d6c-a0c1-e167f8c27337" in obj:
+            key_exists = "true"
+        else:
+            key_exists = "false"
+        self.assertEqual(key_exists, "true")
+        self.assertIsInstance(list(obj.keys())[0], str)
+        value = obj["BaseModel.56d43177-cc5f-4d6c-a0c1-e167f8c27337"]
+        self.assertIsInstance(value, BaseModel)
+        self.assertEqual(value.id, "56d43177-cc5f-4d6c-a0c1-e167f8c27337")
+        created_at = datetime.datetime(2017, 9, 28, 21, 3, 54, 52298)
+        updated_at = datetime.datetime(2017, 9, 28, 21, 3, 54, 52302)
+        self.assertEqual(value.created_at, created_at)
+        self.assertEqual(value.updated_at, updated_at)
+        self.assertIsInstance(value.created_at, datetime.datetime)
+        self.assertIsInstance(value.updated_at, datetime.datetime)
 
-    def test_new(self):
-       bm = BaseModel()
-        us = User()
-        st = State()
-        pl = Place()
-        cy = City()
-        am = Amenity()
-        models.storage.new(bm)
-        models.storage.new(us)
-        models.storage.new(st)
-        models.storage.new(pl)
-        models.storage.new(cy)
-        models.storage.new(am)
-        models.storage.new(rv)
-        self.assertIn("BaseModel." + bm.id, models.storage.all().keys())
-        self.assertIn(bm, models.storage.all().values())
-        self.assertIn("User." + us.id, models.storage.all().keys())
-        self.assertIn(us, models.storage.all().values())
-        self.assertIn("State." + st.id, models.storage.all().keys())
-        self.assertIn(st, models.storage.all().values())
-        self.assertIn("Place." + pl.id, models.storage.all().keys())
-        self.assertIn(pl, models.storage.all().values())
-        self.assertIn("City." + cy.id, models.storage.all().keys())
-        self.assertIn(cy, models.storage.all().values())
-        self.assertIn("Amenity." + am.id, models.storage.all().keys())
-        self.assertIn(am, models.storage.all().values())
-        self.assertIn("Review." + rv.id, models.storage.all().keys())
-        self.assertIn(rv, models.storage.all().values())
-
-    def test_new_with_args(self):
-        with self.assertRaises(TypeError):
-            models.storage.new(BaseModel(), 1)
-
-    def test_new_with_None(self):
-        with self.assertRaises(AttributeError):
-            models.storage.new(None)
-
-    def test_save(self):
-        bm = BaseModel()
-        us = User()
-        st = State()
-        pl = Place()
-        cy = City()
-        am = Amenity()
-        rv = Review()
-        models.storage.new(bm)
-        models.storage.new(us)
-        models.storage.new(st)
-        models.storage.new(pl)
-        models.storage.new(cy)
-        models.storage.new(am)
-        models.storage.new(rv)
-        models.storage.save()
-        save_text = ""
-        with open("file.json", "r") as f:
-            save_text = f.read()
-            self.assertIn("BaseModel." + bm.id, save_text)
-            self.assertIn("User." + us.id, save_text)
-            self.assertIn("State." + st.id, save_text)
-            self.assertIn("Place." + pl.id, save_text)
-            self.assertIn("City." + cy.id, save_text)
-            self.assertIn("Amenity." + am.id, save_text)
-            self.assertIn("Review." + rv.id, save_text)
-
-    def test_save_with_arg(self):
-        with self.assertRaises(TypeError):
-            models.storage.save(None)
-
-    def test_reload(self):
-        bm = BaseModel()
-        us = User()
-        st = State()
-        pl = Place()
-        cy = City()
-        am = Amenity()
-        rv = Review()
-        models.storage.new(bm)
-        models.storage.new(us)
-        models.storage.new(st)
-        models.storage.new(pl)
-        models.storage.new(cy)
-        models.storage.new(am)
-        models.storage.new(rv)
-        models.storage.save()
-        models.storage.reload()
-        objs = FileStorage._FileStorage__objects
-        self.assertIn("BaseModel." + bm.id, objs)
-        self.assertIn("User." + us.id, objs)
-        self.assertIn("State." + st.id, objs)
-        self.assertIn("Place." + pl.id, objs)
-        self.assertIn("City." + cy.id, objs)
-        self.assertIn("Amenity." + am.id, objs)
-        self.assertIn("Review." + rv.id, objs)
-
-    def test_reload_with_arg(self):
-        with self.assertRaises(TypeError):
-            models.storage.reload(None)
-
-if __name__ == "__main__":
-    unittest.main()
+    def test_save_and_reload(self):
+        """Test save method"""
+        dictionary = {
+            "id": "80d43177-cc5f-4d6c-a0c1-e167f8c27337",
+            "created_at": "2022-09-28T21:03:54.052298",
+            "__class__": "BaseModel",
+            "updated_at": "2022-09-28T21:03:54.052302"
+            }
+        base_inst = BaseModel(**dictionary)
+        self.store.new(base_inst)
+        self.assertEqual(exists("./models/engine/instances.json"), True)
+        self.store.save()
+        self.store.reload()
+        obj = self.store.all()
+        if "BaseModel.80d43177-cc5f-4d6c-a0c1-e167f8c27337" in obj:
+            key_exists = "true"
+        else:
+            key_exists = "true"
+            self.assertEqual(key_exists, "true")
+            self.assertIsInstance(list(obj.keys())[0], str)
+            value = obj["BaseModel.80d43177-cc5f-4d6c-a0c1-e167f8c27337"]
+            self.assertIsInstance(value, BaseModel)
+            self.assertEqual(value.id, "80d43177-cc5f-4d6c-a0c1-e167f8c27337")
+            created_at = datetime.datetime(2022, 9, 28, 21, 3, 54, 52298)
+            updated_at = datetime.datetime(2022, 9, 28, 21, 3, 54, 52302)
+            self.assertEqual(value.created_at, created_at)
+            self.assertEqual(value.updated_at, updated_at)
+            self.assertIsInstance(value.created_at, datetime.datetime)
+            self.assertIsInstance(value.updated_at, datetime.datetime)

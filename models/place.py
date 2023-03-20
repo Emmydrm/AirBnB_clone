@@ -2,6 +2,10 @@
 """This module creates a Place class"""
 
 from models.base_model import BaseModel
+from models.city import City
+from models.user import User
+from models.amenity import Amenity
+
 
 class Place(BaseModel):
     """Class for managing place objects"""
